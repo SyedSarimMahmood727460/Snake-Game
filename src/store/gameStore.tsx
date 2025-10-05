@@ -67,7 +67,6 @@ const createInitialState = (
   };
 };
 
-// Helper functions
 const getNextPosition = (head: Cell, direction: Direction): Cell => {
   switch (direction) {
     case 'UP': return { x: head.x, y: head.y - 1 };
@@ -214,7 +213,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const spawnedFood = randomPosition(state.grid, [...newSnake, ...state.bombs, ...newFood]);
       newFood = [...newFood, spawnedFood];
       
-      // Auto spawn bombs based on config
+      // Auto spawn bombs based on setting
       if (
         state.config.autoBombSpawn && 
         state.config.bombSpawnInterval > 0 &&

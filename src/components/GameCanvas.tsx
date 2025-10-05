@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react';
 
 export const GameCanvas = () => {
   const { grid, snake, food, bombs } = useGameStore();
-  const [cellSize, setCellSize] = useState(30); // Default size
+  const [cellSize, setCellSize] = useState(30); 
   const [mounted, setMounted] = useState(false);
   
-  // Calculate cell size only on client side
+  //cell size
   useEffect(() => {
     const calculateCellSize = () => {
       const maxWidth = Math.min(window.innerWidth * 0.6, 600);
@@ -23,21 +23,21 @@ export const GameCanvas = () => {
     return () => window.removeEventListener('resize', calculateCellSize);
   }, [grid.cols]);
   
-  // Helper function to check if a cell contains the snake
-  const isSnakeCell = (x: number, y: number): 'head' | 'body' | null => {
+  // is snake in grid
+  const isSnakeinGrid = (x: number, y: number): 'head' | 'body' | null => {
     if (snake.length === 0) return null;
     if (snake[0].x === x && snake[0].y === y) return 'head';
     if (snake.some((cell, idx) => idx > 0 && cell.x === x && cell.y === y)) return 'body';
     return null;
   };
   
-  // Helper function to check if a cell contains food
-  const isFoodCell = (x: number, y: number): boolean => {
+  // is food in grid
+  const isFoodinGrid = (x: number, y: number): boolean => {
     return food.some(f => f.x === x && f.y === y);
   };
   
-  // Helper function to check if a cell contains a bomb
-  const isBombCell = (x: number, y: number): boolean => {
+  // is bomb in grid
+  const isBombinGrid = (x: number, y: number): boolean => {
     return bombs.some(b => b.x === x && b.y === y);
   };
   
@@ -61,9 +61,9 @@ export const GameCanvas = () => {
       >
         {Array.from({ length: grid.rows }).map((_, row) =>
           Array.from({ length: grid.cols }).map((_, col) => {
-            const snakeType = isSnakeCell(col, row);
-            const hasFood = isFoodCell(col, row);
-            const hasBomb = isBombCell(col, row);
+            const snakeType = isSnakeinGrid(col, row);
+            const hasFood = isFoodinGrid(col, row);
+            const hasBomb = isBombinGrid(col, row);
             
             let cellClass = 'transition-all duration-100 ';
             

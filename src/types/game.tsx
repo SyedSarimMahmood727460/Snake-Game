@@ -6,7 +6,7 @@ export interface GameConfig {
   initialFoodCount: number;
   initialBombCount: number;
   autoBombSpawn: boolean;
-  bombSpawnInterval: number; // spawn bomb every X points
+  bombSpawnInterval: number;
 }
 
 export interface GameState {

@@ -14,8 +14,6 @@ export default function Play() {
     togglePause, 
     resetGame, 
     tick,
-    // spawnBomb,
-    // spawnFood 
   } = useGameStore();
   
   useKeyboardInput();
