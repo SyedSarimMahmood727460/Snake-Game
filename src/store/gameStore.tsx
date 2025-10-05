@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, Direction, Cell } from '../types/game';
+import { GameState, Direction, Cell, GameConfig } from '../types/game';
 
 interface GameStore extends GameState {
   setMode: (mode: GameState['mode']) => void;
@@ -11,18 +11,60 @@ interface GameStore extends GameState {
   tick: () => void;
   gameOver: boolean;
   setGameOver: (value: boolean) => void;
+  spawnBomb: () => void;
+  spawnFood: () => void;
+  setConfig: (config: Partial<GameConfig>) => void;
 }
 
-const initialState: GameState = {
-  grid: { rows: 20, cols: 20 },
-  snake: [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }],
-  direction: 'RIGHT',
-  food: [{ x: 15, y: 15 }],
-  bombs: [{ x: 5, y: 5 }, { x: 12, y: 8 }],
-  score: 0,
-  speedMs: 200,
-  running: false,
-  mode: 'WALLS_SOLID',
+const defaultConfig: GameConfig = {
+  initialFoodCount: 2,
+  initialBombCount: 2,
+  autoBombSpawn: true,
+  bombSpawnInterval: 50,
+};
+
+const createInitialState = (
+  rows: number = 20, 
+  cols: number = 20,
+  config: GameConfig = defaultConfig
+): GameState => {
+  const center = { x: Math.floor(cols / 2), y: Math.floor(rows / 2) };
+  const snake = [
+    center,
+    { x: center.x - 1, y: center.y },
+    { x: center.x - 2, y: center.y }
+  ];
+  
+  const occupied: Cell[] = [...snake];
+  
+  // Spawn initial food
+  const food: Cell[] = [];
+  for (let i = 0; i < config.initialFoodCount; i++) {
+    const newFood = randomPosition({ rows, cols }, occupied);
+    food.push(newFood);
+    occupied.push(newFood);
+  }
+  
+  // Spawn initial bombs
+  const bombs: Cell[] = [];
+  for (let i = 0; i < config.initialBombCount; i++) {
+    const newBomb = randomPosition({ rows, cols }, occupied);
+    bombs.push(newBomb);
+    occupied.push(newBomb);
+  }
+  
+  return {
+    grid: { rows, cols },
+    snake,
+    direction: 'RIGHT',
+    food,
+    bombs,
+    score: 0,
+    speedMs: 200,
+    running: false,
+    mode: 'WALLS_SOLID',
+    config,
+  };
 };
 
 // Helper functions
@@ -64,15 +106,39 @@ const randomPosition = (grid: { rows: number; cols: number }, avoid: Cell[]): Ce
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  ...initialState,
+  ...createInitialState(),
   gameOver: false,
   
   setMode: (mode) => set({ mode }),
   setSpeed: (speedMs) => set({ speedMs }),
-  setGridSize: (rows, cols) => set({ grid: { rows, cols } }),
+  
+  setGridSize: (rows, cols) => {
+    const state = get();
+    const newState = createInitialState(rows, cols, state.config);
+    set({
+      ...newState,
+      mode: state.mode,
+      speedMs: state.speedMs,
+      gameOver: false,
+      running: false,
+    });
+  },
+  
+  setConfig: (configUpdate) => {
+    const state = get();
+    const newConfig = { ...state.config, ...configUpdate };
+    const newState = createInitialState(state.grid.rows, state.grid.cols, newConfig);
+    set({
+      ...newState,
+      mode: state.mode,
+      speedMs: state.speedMs,
+      gameOver: false,
+      running: false,
+    });
+  },
+  
   setDirection: (direction) => {
     const state = get();
-    // Prevent 180-degree turns
     if (state.snake.length > 1) {
       const head = state.snake[0];
       const neck = state.snake[1];
@@ -81,10 +147,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     set({ direction });
   },
+  
   togglePause: () => set((state) => ({ running: !state.running })),
   setGameOver: (value) => set({ gameOver: value }),
   
-  resetGame: () => set({ ...initialState, gameOver: false }),
+  spawnBomb: () => {
+    const state = get();
+    const newBomb = randomPosition(state.grid, [...state.snake, ...state.food, ...state.bombs]);
+    set({ bombs: [...state.bombs, newBomb] });
+  },
+  
+  spawnFood: () => {
+    const state = get();
+    const newFood = randomPosition(state.grid, [...state.snake, ...state.food, ...state.bombs]);
+    set({ food: [...state.food, newFood] });
+  },
+  
+  resetGame: () => {
+    const state = get();
+    const newState = createInitialState(state.grid.rows, state.grid.cols, state.config);
+    set({
+      ...newState,
+      mode: state.mode,
+      speedMs: state.speedMs,
+      gameOver: false,
+    });
+  },
   
   tick: () => {
     const state = get();
@@ -93,43 +181,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const head = state.snake[0];
     let nextHead = getNextPosition(head, state.direction);
     
-    // Handle wrap mode
     if (state.mode === 'WRAP') {
       nextHead = wrapPosition(nextHead, state.grid);
     } else if (isOutOfBounds(nextHead, state.grid)) {
-      // Hit wall in WALLS_SOLID mode
       set({ running: false, gameOver: true });
       return;
     }
     
-    // Check collision with self
     if (state.snake.some(segment => cellsEqual(segment, nextHead))) {
       set({ running: false, gameOver: true });
       return;
     }
     
-    // Check collision with bombs
     if (state.bombs.some(bomb => cellsEqual(bomb, nextHead))) {
       set({ running: false, gameOver: true });
       return;
     }
     
-    // Check if eating food
-    const ateFood = state.food.some(f => cellsEqual(f, nextHead));
+    const foodIndex = state.food.findIndex(f => cellsEqual(f, nextHead));
+    const ateFood = foodIndex !== -1;
     
     let newSnake: Cell[];
     let newScore = state.score;
     let newFood = state.food;
+    let newBombs = state.bombs;
     
     if (ateFood) {
-      // Grow snake (don't remove tail)
       newSnake = [nextHead, ...state.snake];
       newScore += 10;
       
-      // Spawn new food
-      newFood = [randomPosition(state.grid, [...newSnake, ...state.bombs])];
+      newFood = state.food.filter((_, idx) => idx !== foodIndex);
+      const spawnedFood = randomPosition(state.grid, [...newSnake, ...state.bombs, ...newFood]);
+      newFood = [...newFood, spawnedFood];
+      
+      // Auto spawn bombs based on config
+      if (
+        state.config.autoBombSpawn && 
+        state.config.bombSpawnInterval > 0 &&
+        newScore % state.config.bombSpawnInterval === 0 &&
+        newBombs.length < 20
+      ) {
+        const newBomb = randomPosition(state.grid, [...newSnake, ...newFood, ...newBombs]);
+        newBombs = [...newBombs, newBomb];
+      }
     } else {
-      // Move snake (remove tail)
       newSnake = [nextHead, ...state.snake.slice(0, -1)];
     }
     
@@ -137,6 +232,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       snake: newSnake,
       score: newScore,
       food: newFood,
+      bombs: newBombs,
     });
   },
 }));

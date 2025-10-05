@@ -3,7 +3,19 @@
 import { useGameStore } from '@/store/gameStore';
 
 export default function Settings() {
-  const { mode, speedMs, grid, setMode, setSpeed, setGridSize, resetGame } = useGameStore();
+  const { mode, speedMs, grid, config, setMode, setSpeed, setGridSize, setConfig } = useGameStore();
+  
+  const handleResetSettings = () => {
+    setMode('WALLS_SOLID');
+    setSpeed(200);
+    setGridSize(20, 20);
+    setConfig({
+      initialFoodCount: 2,
+      initialBombCount: 2,
+      autoBombSpawn: true,
+      bombSpawnInterval: 50,
+    });
+  };
   
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -20,27 +32,14 @@ export default function Settings() {
               onChange={(e) => setMode(e.target.value as 'WALLS_SOLID' | 'WRAP')}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="WALLS_SOLID">🧱 Walls Solid (Die on collision)</option>
-              <option value="WRAP">🔄 Wrap Mode (Teleport to opposite side)</option>
+              <option value="WALLS_SOLID">Walls Solid (Die on collision)</option>
+              <option value="WRAP">Wrap Mode (Teleport to opposite side)</option>
             </select>
-            <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-600">
-              {mode === 'WRAP' ? (
-                <>
-                  <strong>Wrap Mode:</strong> When the snake moves off one edge, 
-                  it appears on the opposite side. Walls don't kill you!
-                </>
-              ) : (
-                <>
-                  <strong>Walls Solid:</strong> Hitting any wall ends the game. 
-                  Stay inside the boundaries!
-                </>
-              )}
-            </div>
           </div>
           
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Speed: {speedMs}ms ({speedMs <= 100 ? 'Very Fast ⚡' : speedMs <= 200 ? 'Fast 🏃' : speedMs <= 350 ? 'Normal 🚶' : 'Slow 🐌'})
+              Speed: {speedMs}ms ({speedMs <= 100 ? 'Very Fast' : speedMs <= 200 ? 'Fast' : speedMs <= 350 ? 'Normal' : 'Slow'})
             </label>
             <input
               type="range"
@@ -52,8 +51,8 @@ export default function Settings() {
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>⚡ Fast (50ms)</span>
-              <span>🐌 Slow (500ms)</span>
+              <span>Fast (50ms)</span>
+              <span>Slow (500ms)</span>
             </div>
           </div>
           
@@ -89,20 +88,99 @@ export default function Settings() {
               Current: {grid.rows} × {grid.cols} = {grid.rows * grid.cols} cells
             </p>
           </div>
+
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Spawn Configuration</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Initial Food Count: {config.initialFoodCount}
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={config.initialFoodCount}
+                  onChange={(e) => setConfig({ initialFoodCount: Number(e.target.value) })}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1 food</span>
+                  <span>10 food items</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Initial Bomb Count: {config.initialBombCount}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="10"
+                  value={config.initialBombCount}
+                  onChange={(e) => setConfig({ initialBombCount: Number(e.target.value) })}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>No bombs</span>
+                  <span>10 bombs</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={config.autoBombSpawn}
+                    onChange={(e) => setConfig({ autoBombSpawn: e.target.checked })}
+                    className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">
+                    Auto-spawn bombs during gameplay
+                  </span>
+                </label>
+              </div>
+
+              {config.autoBombSpawn && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Spawn bomb every {config.bombSpawnInterval} points
+                  </label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="10"
+                    value={config.bombSpawnInterval}
+                    onChange={(e) => setConfig({ bombSpawnInterval: Number(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Every 10 pts</span>
+                    <span>Every 100 pts</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    A new bomb will spawn automatically every {config.bombSpawnInterval} points (max 20 bombs)
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
           
           <button
-            onClick={resetGame}
+            onClick={handleResetSettings}
             className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-lg"
           >
-            🔄 Reset to Defaults
+            Reset Settings to Defaults
           </button>
         </div>
       </div>
-      
-      <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+
+      <div className="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
         <p className="text-sm text-gray-700">
-          <strong>Stage 1 Complete:</strong> Grid and snake are now rendering! 
-          Press arrow keys or WASD to see direction changes.
+          <strong>Note:</strong> Changing spawn configuration will reset the game with new settings applied.
         </p>
       </div>
     </div>

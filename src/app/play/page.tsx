@@ -3,16 +3,23 @@
 import { useGameStore } from '@/store/gameStore';
 import { GameCanvas } from '@/components/GameCanvas';
 import { HudBar } from '@/components/HudBar';
-import { useKeyboardInput } from '@/hooks/useKeybaordInputs';
+import { useKeyboardInput } from '@/hooks/useKeyboardInputs';
 import { useEffect } from 'react';
 
 export default function Play() {
-  const { running, speedMs, gameOver, togglePause, resetGame, tick } = useGameStore();
+  const { 
+    running, 
+    speedMs, 
+    gameOver, 
+    togglePause, 
+    resetGame, 
+    tick,
+    // spawnBomb,
+    // spawnFood 
+  } = useGameStore();
   
-  // Enable keyboard input
   useKeyboardInput();
   
-  // Game loop
   useEffect(() => {
     if (!running) return;
     
@@ -22,6 +29,10 @@ export default function Play() {
     
     return () => clearInterval(interval);
   }, [running, speedMs, tick]);
+  
+  const handleReset = () => {
+    resetGame();
+  };
   
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -33,7 +44,7 @@ export default function Play() {
               <p className="text-red-700">You crashed! Try again?</p>
             </div>
             <button
-              onClick={resetGame}
+              onClick={handleReset}
               className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-lg transition-all"
             >
               New Game
@@ -42,7 +53,7 @@ export default function Play() {
         </div>
       )}
       
-      <div className="mb-6 flex justify-center gap-4">
+      <div className="mb-6 flex justify-center gap-4 flex-wrap">
         <button
           onClick={togglePause}
           disabled={gameOver}
@@ -57,7 +68,7 @@ export default function Play() {
           {running ? 'Pause' : 'Start'}
         </button>
         <button
-          onClick={resetGame}
+          onClick={handleReset}
           className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-lg transition-all"
         >
           Reset
