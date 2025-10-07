@@ -1,9 +1,43 @@
 'use client';
 
 import { useGameStore } from '@/store/gameStore';
+import React from 'react';
+import { useState } from 'react';
 
 export default function Settings() {
   const { mode, speedMs, grid, config, setMode, setSpeed, setGridSize, setConfig } = useGameStore();
+  
+  // Local state for input fields to allow free typing
+  const [rowsInput, setRowsInput] = useState(grid.rows.toString());
+  const [colsInput, setColsInput] = useState(grid.cols.toString());
+  
+  // Update local state when grid changes from store
+  React.useEffect(() => {
+    setRowsInput(grid.rows.toString());
+    setColsInput(grid.cols.toString());
+  }, [grid.rows, grid.cols]);
+  
+  const validateAndSetRows = (value: string) => {
+    const num = parseInt(value);
+    if (!isNaN(num)) {
+      const validValue = Math.max(10, Math.min(40, num));
+      setGridSize(validValue, grid.cols);
+      setRowsInput(validValue.toString());
+    } else {
+      setRowsInput(grid.rows.toString());
+    }
+  };
+  
+  const validateAndSetCols = (value: string) => {
+    const num = parseInt(value);
+    if (!isNaN(num)) {
+      const validValue = Math.max(10, Math.min(40, num));
+      setGridSize(grid.rows, validValue);
+      setColsInput(validValue.toString());
+    } else {
+      setColsInput(grid.cols.toString());
+    }
+  };
   
   const handleResetSettings = () => {
     setMode('WALLS_SOLID');
@@ -67,8 +101,14 @@ export default function Settings() {
                   type="number"
                   min="10"
                   max="40"
-                  value={grid.rows}
-                  onChange={(e) => setGridSize(Number(e.target.value), grid.cols)}
+                  value={rowsInput}
+                  onChange={(e) => setRowsInput(e.target.value)}
+                  onBlur={(e) => validateAndSetRows(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      validateAndSetRows(e.currentTarget.value);
+                    }
+                  }}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -78,14 +118,20 @@ export default function Settings() {
                   type="number"
                   min="10"
                   max="40"
-                  value={grid.cols}
-                  onChange={(e) => setGridSize(grid.rows, Number(e.target.value))}
+                  value={colsInput}
+                  onChange={(e) => setColsInput(e.target.value)}
+                  onBlur={(e) => validateAndSetCols(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      validateAndSetCols(e.currentTarget.value);
+                    }
+                  }}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500"
                 />
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Current: {grid.rows} × {grid.cols} = {grid.rows * grid.cols} cells
+              Range: 10-40 | Current: {grid.rows} × {grid.cols} = {grid.rows * grid.cols} cells
             </p>
           </div>
 
